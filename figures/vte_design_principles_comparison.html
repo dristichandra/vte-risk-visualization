@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VTE Design Principles Comparison</title>
+<style>body { margin: 0; padding: 24px; font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; }</style>
+</head>
+<body>
+<div style="max-width: 360px; margin: 0 auto;">
+  <div style="display: flex; flex-direction: column; gap: 0;">
+
+    <div style="display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+      <div style="font-size: 11px; font-weight: 600; color: #333; text-align: center; letter-spacing: 0.5px;">CONVENTIONAL</div>
+      <div></div>
+      <div style="font-size: 11px; font-weight: 600; color: #333; text-align: center; letter-spacing: 0.5px;">PROPOSED</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; min-height: 110px;">
+      <div style="background: #EE6677; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center; border-radius: 6px 0 0 0;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Error bars</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">Require numerical interpretation of confidence intervals</div>
+      </div>
+      <div style="background: #228833; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="background: #228833; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center; border-radius: 0 6px 0 0;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Quantile dots</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">1.4x better comprehension through visual counting</div>
+        <div style="font-size: 10px; color: #fff; opacity: 0.65; margin-top: 4px;">Padilla 2023</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; min-height: 110px;">
+      <div style="background: #EE6677; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Static snapshots</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">Miss risk evolution across treatment phases</div>
+      </div>
+      <div style="background: #228833; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="background: #228833; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Temporal narrative</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">28% improvement in early detection</div>
+        <div style="font-size: 10px; color: #fff; opacity: 0.65; margin-top: 4px;">Kia 2021</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; min-height: 110px;">
+      <div style="background: #EE6677; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Black-box models</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">67% override rate for unexplained algorithms</div>
+      </div>
+      <div style="background: #228833; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="background: #228833; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Transparency</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">Explainable factors build clinical trust and reduce overrides</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; min-height: 110px;">
+      <div style="background: #EE6677; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center; border-radius: 0 0 0 6px;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Interruptive alerts</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">12% increase in workflow errors; alert fatigue</div>
+      </div>
+      <div style="background: #228833; display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="background: #228833; padding: 14px 12px; display: flex; flex-direction: column; justify-content: center; border-radius: 0 0 6px 0;">
+        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px;">Passive integration</div>
+        <div style="font-size: 11px; color: #fff; opacity: 0.85; line-height: 1.4;">Embedded in existing workflow; reduces disruption</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
