@@ -9,8 +9,8 @@ Current VTE risk assessment tools achieve 95%+ prediction accuracy (AUROC) but f
 ## Research Team
 
 - **Dristi Chandra** — Undergraduate Researcher, University of Washington
-- **Kavya Chandrasekar** — Co-Researcher, University of Washington
-- **Dr. Barbara Lam** — Faculty Advisor, Fred Hutchinson Cancer Center
+- **Kavya Chandrasekar** — Undergraduate Researcher, University of Washington
+- **Dr. Barbara Lam** — Principal Investigator & Faculty Advisor, University of Washington Medicine and Fred Hutchinson Cancer Center
 
 ## Design Principles
 
@@ -69,6 +69,8 @@ vte-risk-visualization/
 ## Presentations
 
 - **ITHS Symposium** — UW Seattle, May 12, 2026 (poster presentation)
+- **University of Washington's 29th Annual Undergraduate Research Symposium** — UW Seattle, May 15, 2026 (poster presentation)
+  
 
 ## Built With
 
