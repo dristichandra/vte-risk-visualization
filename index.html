@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VTE Risk Module — UW Medicine</title>
+<style>
+  /* ---------- Paul Tol Bright palette ---------- */
+  :root {
+    --tol-blue:   #4477AA;
+    --tol-cyan:   #66CCEE;
+    --tol-green:  #228833;
+    --tol-yellow: #CCBB44;
+    --tol-red:    #EE6677;
+    --tol-purple: #AA3377;
+    --tol-grey:   #BBBBBB;
+
+    /* EHR chrome */
+    --ehr-bg:        #f1f3f6;
+    --ehr-panel:     #ffffff;
+    --ehr-banner:    #1e3a5f;
+    --ehr-banner-2:  #2a4a73;
+    --ehr-nav:       #2c3e50;
+    --ehr-nav-hover: #34495e;
+    --ehr-nav-active:#4477AA;
+    --ehr-border:    #d0d7de;
+    --ehr-text:      #1f2328;
+    --ehr-text-2:    #57606a;
+    --ehr-text-3:    #8b949e;
+    --ehr-alert-bg:  #fff8e1;
+    --ehr-alert-bd:  #CCBB44;
+
+    --risk-low:      #228833;
+    --risk-mod:      #CCBB44;
+    --risk-high:     #EE6677;
+    --risk-crit:     #AA3377;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ehr-bg);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    color: var(--ehr-text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Top system bar ---------- */
+  .system-bar {
+    background: var(--ehr-banner);
+    color: #fff;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 12px;
+    border-bottom: 1px solid #14263e;
+  }
+  .system-bar .logo {
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    font-size: 13px;
+    margin-right: 16px;
+  }
+  .system-bar .crumbs {
+    color: #c8d6e8;
+    flex: 1;
+  }
+  .system-bar .crumbs span { color: #fff; font-weight: 600; }
+  .system-bar .user {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    color: #c8d6e8;
+  }
+  .system-bar .user b { color: #fff; font-weight: 600; }
+
+  /* ---------- Patient banner ---------- */
+  .patient-banner {
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+    border-bottom: 2px solid var(--ehr-banner);
+    padding: 10px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .patient-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #d6dde5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ehr-banner);
+    font-weight: 700;
+    font-size: 15px;
+    border: 2px solid var(--ehr-banner);
+  }
+  .patient-info {
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    gap: 4px 22px;
+    align-items: center;
+  }
+  .patient-info .name {
+    grid-column: 1 / -1;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ehr-banner);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .patient-info .name .pronouns {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ehr-text-2);
+  }
+  .patient-info .field { font-size: 11px; color: var(--ehr-text-2); }
+  .patient-info .field b {
+    color: var(--ehr-text);
+    font-weight: 600;
+    display: block;
+    font-size: 12px;
+    margin-top: 1px;
+  }
+  .patient-flags {
+    display: flex;
+    gap: 6px;
+  }
+  .flag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .flag.allergy { background: #fdecea; color: #9b2c2c; border: 1px solid #f5c6cb; }
+  .flag.code    { background: #e8f0fe; color: #1a3e72; border: 1px solid #c6d4ed; }
+  .flag.isolation { background: #f0e8f5; color: #5a2a7a; border: 1px solid #d8c5e3; }
+
+  /* ---------- App shell ---------- */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: calc(100vh - 36px - 70px);
+  }
+  .side-nav {
+    background: var(--ehr-nav);
+    color: #cfd8dc;
+    padding: 8px 0;
+    font-size: 12px;
+  }
+  .side-nav .nav-section {
+    padding: 6px 14px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8fa3b3;
+    margin-top: 8px;
+  }
+  .side-nav .nav-item {
+    padding: 7px 14px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid transparent;
+  }
+  .side-nav .nav-item:hover { background: var(--ehr-nav-hover); }
+  .side-nav .nav-item.active {
+    background: var(--ehr-nav-hover);
+    border-left-color: var(--tol-cyan);
+    color: #fff;
+    font-weight: 600;
+  }
+  .side-nav .nav-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    opacity: 0.85;
+  }
+  .side-nav .nav-badge {
+    margin-left: auto;
+    background: var(--tol-red);
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  /* ---------- Main work area ---------- */
+  .work-area {
+    padding: 12px 16px;
+    overflow-x: auto;
+  }
+  .module-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .module-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ehr-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .module-title .badge {
+    background: var(--tol-blue);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .module-meta {
+    font-size: 11px;
+    color: var(--ehr-text-2);
+  }
+  .module-meta b { color: var(--ehr-text); }
+
+  /* ---------- Tabs ---------- */
+  .view-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--ehr-border);
+    margin-bottom: 12px;
+  }
+  .view-tab {
+    padding: 9px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ehr-text-2);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.12s;
+  }
+  .view-tab:hover { color: var(--ehr-text); }
+  .view-tab.active {
+    color: var(--tol-blue);
+    border-bottom-color: var(--tol-blue);
+  }
+  .view-tab .sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ehr-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .view-tab.active .sub { color: var(--tol-blue); opacity: 0.7; }
+
+  /* ---------- Alert strip ---------- */
+  .alert-strip {
+    background: var(--ehr-alert-bg);
+    border-left: 4px solid var(--ehr-alert-bd);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .alert-strip b { color: #7a5a00; }
+  .alert-strip .alert-icon {
+    width: 18px; height: 18px;
+    background: var(--ehr-alert-bd);
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ---------- Panels ---------- */
+  .panel {
+    background: var(--ehr-panel);
+    border: 1px solid var(--ehr-border);
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .panel-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid var(--ehr-border);
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ehr-text);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-header .right {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ehr-text-2);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .panel-body { padding: 12px; }
+
+  /* ---------- View container ---------- */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Clinician: top metrics ---------- */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .metric-card {
+    background: #fff;
+    border: 1px solid var(--ehr-border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    position: relative;
+  }
+  .metric-card .label {
+    font-size: 10px;
+    color: var(--ehr-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .metric-card .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ehr-text);
+    line-height: 1;
+  }
+  .metric-card .trend {
+    font-size: 11px;
+    margin-top: 4px;
+    color: var(--ehr-text-2);
+  }
+  .metric-card .trend.up { color: var(--tol-red); }
+  .metric-card .trend.down { color: var(--tol-green); }
+  .metric-card.high-risk {
+    border-left: 4px solid var(--tol-red);
+  }
+  .metric-card .value .unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ehr-text-2);
+    margin-left: 3px;
+  }
+
+  /* ---------- Timeline ---------- */
+  .timeline-wrap { padding: 14px 12px 8px; }
+  .timeline-legend {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    flex-wrap: wrap;
+  }
+  .timeline-legend .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .timeline {
+    position: relative;
+    height: 210px;
+    border-bottom: 1px solid var(--ehr-border);
+    margin-bottom: 6px;
+    padding-top: 28px;
+  }
+  .timeline .threshold {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed var(--tol-blue);
+    font-size: 10px;
+    color: var(--tol-blue);
+    font-weight: 600;
+  }
+  .threshold-label {
+    position: absolute;
+    left: 0;
+    top: -16px;
+    background: #fff;
+    padding: 1px 4px;
+  }
+  .timeline-bars {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    height: 100%;
+    align-items: end;
+    padding-bottom: 2px;
+  }
+  .bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+  }
+  .bar {
+    width: 80%;
+    border-radius: 2px 2px 0 0;
+    position: relative;
+  }
+  .bar.you-are-here::before {
+    content: "▼ Current";
+    position: absolute;
+    top: -42px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--ehr-text);
+    padding: 2px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .bar-value {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+    color: var(--ehr-text);
+  }
+  .bar-label {
+    font-size: 10px;
+    color: var(--ehr-text-2);
+    margin-top: 2px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* ---------- Two-column body ---------- */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 10px;
+  }
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ---------- Risk drivers ---------- */
+  .driver {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid #eef0f3;
+    font-size: 12px;
+  }
+  .driver:last-child { border-bottom: none; }
+  .driver .driver-name { font-weight: 600; }
+  .driver .driver-value {
+    color: var(--ehr-text-2);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .driver .driver-bar {
+    width: 90px;
+    height: 6px;
+    background: #eef0f3;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-left: 10px;
+  }
+  .driver .driver-bar-fill {
+    height: 100%;
+    background: var(--tol-blue);
+  }
+  .driver .driver-contrib {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tol-blue);
+    margin-left: 6px;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* ---------- Prophylaxis comparison chart ---------- */
+  .chart-wrap {
+    padding: 8px 4px 4px;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .chart-legend .line {
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* ---------- Recommendation cards ---------- */
+  .reco-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .reco-card {
+    border: 1px solid var(--ehr-border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    background: #fafbfc;
+  }
+  .reco-card.recommended {
+    border-color: var(--tol-green);
+    background: #f0f9f2;
+  }
+  .reco-card .reco-label {
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .reco-card .reco-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ehr-text);
+  }
+  .reco-card.recommended .reco-value { color: var(--tol-green); }
+  .reco-card .reco-sub {
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    margin-top: 2px;
+  }
+  .reco-card .reco-tag {
+    display: inline-block;
+    margin-top: 6px;
+    background: var(--tol-green);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---------- Clinical interpretation ---------- */
+  .interpretation {
+    background: #f6f8fa;
+    border-left: 3px solid var(--tol-blue);
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--ehr-text);
+  }
+  .interpretation b { color: var(--ehr-text); }
+
+  /* ---------- Action bar ---------- */
+  .action-bar {
+    background: #fff;
+    border: 1px solid var(--ehr-border);
+    border-top: 3px solid var(--tol-blue);
+    border-radius: 4px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .action-bar .order-summary {
+    font-size: 12px;
+  }
+  .action-bar .order-summary b { color: var(--ehr-text); }
+  .action-buttons { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 3px;
+    border: 1px solid var(--ehr-border);
+    background: #fff;
+    color: var(--ehr-text);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: #f6f8fa; }
+  .btn.primary {
+    background: var(--tol-blue);
+    color: #fff;
+    border-color: var(--tol-blue);
+  }
+  .btn.primary:hover { background: #3a6794; }
+  .btn.danger {
+    background: #fff;
+    color: var(--tol-red);
+    border-color: var(--tol-red);
+  }
+
+  .dot-matrix-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dot-matrix-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ehr-text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .dot-matrix {
+    display: grid;
+    grid-template-columns: repeat(10, 22px);
+    grid-template-rows: repeat(10, 22px);
+    gap: 4px;
+    padding: 8px;
+    background: #fafbfc;
+    border: 1px solid var(--ehr-border);
+    border-radius: 4px;
+  }
+  .dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--tol-grey);
+  }
+  .dot.affected {
+    background: var(--tol-red);
+    border-color: var(--tol-red);
+    box-shadow: 0 0 0 1px #fff inset;
+  }
+  .dot-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    justify-content: center;
+  }
+  .dot-legend .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot-legend .leg-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--tol-grey);
+    background: #fff;
+  }
+  .dot-legend .leg-dot.affected {
+    background: var(--tol-red);
+    border-color: var(--tol-red);
+  }
+  .dot-summary {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--ehr-text);
+  }
+  .dot-summary .big {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--tol-red);
+  }
+  .dot-summary .big.safe {
+    color: var(--tol-green);
+  }
+  .dot-summary u { font-weight: 700; text-decoration-thickness: 2px; }
+
+  .patient-reco-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .patient-reco {
+    border: 2px solid var(--ehr-border);
+    border-radius: 6px;
+    padding: 14px;
+    text-align: center;
+    background: #fff;
+  }
+  .patient-reco.recommended {
+    border-color: var(--tol-green);
+    background: #f0f9f2;
+  }
+  .patient-reco .pr-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ehr-text);
+    margin-bottom: 8px;
+  }
+  .patient-reco .pr-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--tol-blue);
+    line-height: 1;
+  }
+  .patient-reco.recommended .pr-value { color: var(--tol-green); }
+  .patient-reco .pr-sub {
+    font-size: 11px;
+    color: var(--ehr-text-2);
+    margin-top: 4px;
+  }
+
+  .patient-guidance {
+    background: #f0f9f2;
+    border: 1px solid var(--tol-green);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    text-align: center;
+    color: #1a5e25;
+  }
+
+  .similar-patients {
+    margin-top: 6px;
+  }
+  .similar-patients .sp-criteria {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .similar-patients .sp-criteria ul {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+    color: var(--ehr-text-2);
+  }
+  .outcome-row {
+    display: grid;
+    grid-template-columns: 1fr 200px 40px;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .outcome-bar {
+    height: 14px;
+    background: #eef0f3;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .outcome-bar-fill {
+    height: 100%;
+  }
+  .outcome-row b {
+    font-weight: 700;
+    text-align: right;
+  }
+
+  /* ---------- Status footer ---------- */
+  .status-footer {
+    background: #2c3e50;
+    color: #c8d6e8;
+    font-size: 11px;
+    padding: 6px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .status-footer .session b { color: #fff; }
+  .status-footer .fhir-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tol-green);
+    box-shadow: 0 0 4px var(--tol-green);
+  }
+
+  /* ---------- Recharts-y line chart via SVG ---------- */
+  svg.line-chart {
+    width: 100%;
+    height: 200px;
+    display: block;
+  }
+  svg.line-chart .grid-line { stroke: #eef0f3; stroke-width: 1; }
+  svg.line-chart .axis-line { stroke: #d0d7de; stroke-width: 1; }
+  svg.line-chart .axis-text {
+    fill: var(--ehr-text-2);
+    font-size: 10px;
+    font-family: inherit;
+  }
+
+  @media (max-width: 1200px) {
+    .two-col { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== System bar ========== -->
+<div class="system-bar">
+  <div class="logo">UW MEDICINE</div>
+  <div class="crumbs">Inpatient &nbsp;›&nbsp; Oncology &nbsp;›&nbsp; <span>VTE Risk Assessment Module</span></div>
+  <div class="user">
+    <span>Encounter: <b>OUT-2026-04891</b></span>
+    <span>Provider: <b>Dr. B. Lam, MD</b></span>
+    <span>11 May 2026 · 14:32 PST</span>
+  </div>
+</div>
+
+<!-- ========== Patient banner ========== -->
+<div class="patient-banner">
+  <div class="patient-avatar">JD</div>
+  <div class="patient-info">
+    <div class="name">
+      Doe, John <span class="pronouns">(he/him)</span>
+    </div>
+    <div class="field">MRN<b>UW-7842091</b></div>
+    <div class="field">DOB<b>14 Mar 1966 (60 y)</b></div>
+    <div class="field">Sex<b>Male</b></div>
+    <div class="field">Wt / Ht<b>78 kg / 175 cm</b></div>
+    <div class="field">Primary Dx<b>Gastric Adenocarcinoma, Stage IIIB</b></div>
+    <div class="field">Treatment<b>FOLFOX, Cycle 1</b></div>
+  </div>
+  <div class="patient-flags">
+    <span class="flag allergy">NKDA</span>
+    <span class="flag code">FULL CODE</span>
+    <span class="flag isolation">ONCOLOGY</span>
+  </div>
+</div>
+
+<!-- ========== App shell ========== -->
+<div class="app-shell">
+
+  <!-- ===== Left nav ===== -->
+  <nav class="side-nav">
+    <div class="nav-section">Chart</div>
+    <div class="nav-item">Snapshot</div>
+    <div class="nav-item">Chart Review</div>
+    <div class="nav-item">Results <span class="nav-badge">3</span></div>
+    <div class="nav-item">Medications</div>
+    <div class="nav-item">Problem List</div>
+
+    <div class="nav-section">Clinical</div>
+    <div class="nav-item">Orders</div>
+    <div class="nav-item">Notes</div>
+    <div class="nav-item">Allergies</div>
+    <div class="nav-item">Immunizations</div>
+
+    <div class="nav-section">Risk &amp; CDS</div>
+    <div class="nav-item active">VTE Risk</div>
+    <div class="nav-item">Sepsis Watch</div>
+    <div class="nav-item">Fall Risk</div>
+    <div class="nav-item">Readmission</div>
+
+    <div class="nav-section">Encounter</div>
+    <div class="nav-item">Vitals</div>
+    <div class="nav-item">I &amp; O</div>
+    <div class="nav-item">Education</div>
+  </nav>
+
+  <!-- ===== Main work area ===== -->
+  <main class="work-area">
+
+    <div class="module-header">
+      <div class="module-title">
+        <span>VTE Risk Assessment</span>
+        <span class="badge">CDS Module</span>
+        <span class="badge" style="background:var(--tol-purple)">FHIR R4</span>
+      </div>
+      <div class="module-meta">
+        Model: <b>UW-VTE Dynamic Risk Engine v0.4</b> · Last refresh: <b>14:31</b> · Data window: <b>6 mo trajectory</b>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="view-tabs">
+      <div class="view-tab active" data-tab="clinician" onclick="switchTab('clinician')">
+        Clinician View <span class="sub">Decision Support</span>
+      </div>
+      <div class="view-tab" data-tab="patient" onclick="switchTab('patient')">
+        Patient View <span class="sub">Shared Decision-Making</span>
+      </div>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- ============ CLINICIAN VIEW =============== -->
+    <!-- =========================================== -->
+    <div id="view-clinician" class="view active">
+
+      <!-- Alert strip -->
+      <div class="alert-strip">
+        <span class="alert-icon">!</span>
+        <div>
+          <b>Elevated VTE risk detected.</b>
+          Current 6-month risk is 24% (High). Patient is currently <b>not on prophylaxis</b>.
+          Guideline: ASCO 2023 recommends LMWH prophylaxis for ambulatory cancer patients with Khorana ≥ 2 starting systemic therapy.
+        </div>
+      </div>
+
+      <!-- Top metrics -->
+      <div class="metric-row">
+        <div class="metric-card high-risk">
+          <div class="label">6-Mo VTE Risk</div>
+          <div class="value">24<span class="unit">%</span></div>
+          <div class="trend up">▲ +6% since last cycle</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Khorana Score</div>
+          <div class="value">3</div>
+          <div class="trend">High risk tier</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Bleeding Risk</div>
+          <div class="value">Low</div>
+          <div class="trend">HAS-BLED: 1</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Risk Trajectory</div>
+          <div class="value" style="color:var(--tol-red)">↗ Rising</div>
+          <div class="trend">Peak expected: Cycle 4</div>
+        </div>
+      </div>
+
+      <!-- Treatment timeline -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>Treatment Timeline · 6-Month Trajectory</span>
+          <span class="right">Research prototype · Confidence: 87%</span>
+        </div>
+        <div class="timeline-wrap">
+          <div class="timeline-legend">
+            <span><span class="swatch" style="background:var(--risk-low)"></span>Low (0–8%)</span>
+            <span><span class="swatch" style="background:var(--risk-mod)"></span>Moderate (8–15%)</span>
+            <span><span class="swatch" style="background:var(--risk-high)"></span>High (15–25%)</span>
+            <span><span class="swatch" style="background:var(--risk-crit)"></span>Critical (&gt;25%)</span>
+            <span style="margin-left:auto"><span style="display:inline-block;width:14px;height:0;border-top:1px dashed var(--tol-blue);vertical-align:middle;margin-right:5px"></span>8% Prophylaxis threshold</span>
+          </div>
+          <div class="timeline">
+            <div class="threshold" style="bottom:35%">
+              <span class="threshold-label">8% Prophylaxis Threshold</span>
+            </div>
+            <div class="timeline-bars">
+              <div class="bar-col">
+                <div class="bar" style="height:6%;background:var(--risk-low)"></div>
+                <div class="bar-value">5%</div>
+                <div class="bar-label">Pre-surgery</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:32%;background:var(--risk-high)"></div>
+                <div class="bar-value">18%</div>
+                <div class="bar-label">Surgery</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:20%;background:var(--risk-mod)"></div>
+                <div class="bar-value">12%</div>
+                <div class="bar-label">Chemo 1</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar you-are-here" style="height:30%;background:var(--risk-high);outline:2px solid var(--ehr-text)"></div>
+                <div class="bar-value">16%</div>
+                <div class="bar-label">Chemo 2</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:48%;background:var(--risk-high)"></div>
+                <div class="bar-value">24%</div>
+                <div class="bar-label">Chemo 3</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:42%;background:var(--risk-high)"></div>
+                <div class="bar-value">22%</div>
+                <div class="bar-label">Chemo 4</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:32%;background:var(--risk-high)"></div>
+                <div class="bar-value">18%</div>
+                <div class="bar-label">Chemo 5</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:26%;background:var(--risk-high)"></div>
+                <div class="bar-value">15%</div>
+                <div class="bar-label">Chemo 6</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:16%;background:var(--risk-mod)"></div>
+                <div class="bar-value">10%</div>
+                <div class="bar-label">Recovery I</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:10%;background:var(--risk-low)"></div>
+                <div class="bar-value">7%</div>
+                <div class="bar-label">Recovery II</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two col body -->
+      <div class="two-col">
+
+        <!-- Left col: Prophylaxis impact chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <span>Prophylaxis Impact Comparison</span>
+            <span class="right">Cancer-Associated Thrombosis (CAT) Risk</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-legend">
+              <span><span class="line" style="background:var(--tol-red)"></span>No prophylaxis (baseline)</span>
+              <span><span class="line" style="background:var(--tol-blue)"></span>Standard (3 months)</span>
+              <span><span class="line" style="background:var(--tol-green)"></span>Extended (6 months)</span>
+            </div>
+
+            <svg class="line-chart" viewBox="0 0 480 200" preserveAspectRatio="none">
+              <!-- gridlines -->
+              <line class="grid-line" x1="40" y1="20"  x2="470" y2="20" />
+              <line class="grid-line" x1="40" y1="60"  x2="470" y2="60" />
+              <line class="grid-line" x1="40" y1="100" x2="470" y2="100" />
+              <line class="grid-line" x1="40" y1="140" x2="470" y2="140" />
+              <!-- axes -->
+              <line class="axis-line" x1="40" y1="20"  x2="40"  y2="170" />
+              <line class="axis-line" x1="40" y1="170" x2="470" y2="170" />
+              <!-- y-axis labels -->
+              <text class="axis-text" x="32" y="172" text-anchor="end">0</text>
+              <text class="axis-text" x="32" y="142" text-anchor="end">5</text>
+              <text class="axis-text" x="32" y="102" text-anchor="end">10</text>
+              <text class="axis-text" x="32" y="62"  text-anchor="end">15</text>
+              <text class="axis-text" x="32" y="22"  text-anchor="end">20%</text>
+              <!-- x-axis labels -->
+              <text class="axis-text" x="40"  y="185" text-anchor="middle">0</text>
+              <text class="axis-text" x="112" y="185" text-anchor="middle">1</text>
+              <text class="axis-text" x="184" y="185" text-anchor="middle">2</text>
+              <text class="axis-text" x="256" y="185" text-anchor="middle">3</text>
+              <text class="axis-text" x="328" y="185" text-anchor="middle">4</text>
+              <text class="axis-text" x="400" y="185" text-anchor="middle">5</text>
+              <text class="axis-text" x="465" y="185" text-anchor="middle">6 mo</text>
+
+              <!-- No prophylaxis curve (red) - rises to ~18% -->
+              <path d="M 40,170 Q 100,150 160,120 T 280,60 T 400,30 L 465,28"
+                    fill="none" stroke="#EE6677" stroke-width="2.2" />
+              <!-- Standard 3mo (blue) - matches red then plateaus -->
+              <path d="M 40,170 Q 100,150 160,125 T 280,90 L 340,95 L 400,98 L 465,100"
+                    fill="none" stroke="#4477AA" stroke-width="2.2" />
+              <!-- Extended 6mo (green) - stays low, recommended -->
+              <path d="M 40,170 Q 100,158 160,150 T 280,140 T 400,138 L 465,140"
+                    fill="none" stroke="#228833" stroke-width="2.5" />
+              <!-- Recommended path markers -->
+              <circle cx="40"  cy="170" r="3" fill="#228833" />
+              <circle cx="160" cy="150" r="3" fill="#228833" />
+              <circle cx="280" cy="140" r="3" fill="#228833" />
+              <circle cx="400" cy="138" r="3" fill="#228833" />
+              <circle cx="465" cy="140" r="3" fill="#228833" />
+              <!-- Axis titles -->
+              <text class="axis-text" x="255" y="199" text-anchor="middle" style="font-weight:600">Months since start of treatment</text>
+              <text class="axis-text" x="15" y="95" text-anchor="middle" transform="rotate(-90 15 95)" style="font-weight:600">Cumulative CAT Risk (%)</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Right col: Risk drivers -->
+        <div class="panel">
+          <div class="panel-header">
+            <span>Risk Drivers (SHAP)</span>
+            <span class="right">Contribution to model output</span>
+          </div>
+          <div class="panel-body" style="padding:6px 12px;">
+            <div class="driver">
+              <div>
+                <div class="driver-name">D-Dimer</div>
+                <div class="driver-value">1.5 mg/L · 85th percentile</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:90%;background:var(--tol-red)"></div></div>
+                <div class="driver-contrib" style="color:var(--tol-red)">+42%</div>
+              </div>
+            </div>
+            <div class="driver">
+              <div>
+                <div class="driver-name">Cancer Type</div>
+                <div class="driver-value">Gastric · Khorana high-risk site</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:42%;background:var(--tol-red)"></div></div>
+                <div class="driver-contrib" style="color:var(--tol-red)">+19%</div>
+              </div>
+            </div>
+            <div class="driver">
+              <div>
+                <div class="driver-name">Platelet Count</div>
+                <div class="driver-value">380 k/µL · elevated</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:35%;background:var(--tol-yellow)"></div></div>
+                <div class="driver-contrib" style="color:#7a5a00">+15%</div>
+              </div>
+            </div>
+            <div class="driver">
+              <div>
+                <div class="driver-name">Hemoglobin</div>
+                <div class="driver-value">9.2 g/dL · low</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:22%;background:var(--tol-yellow)"></div></div>
+                <div class="driver-contrib" style="color:#7a5a00">+12%</div>
+              </div>
+            </div>
+            <div class="driver">
+              <div>
+                <div class="driver-name">Chemotherapy Active</div>
+                <div class="driver-value">FOLFOX · platinum-based</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:20%;background:var(--tol-blue)"></div></div>
+                <div class="driver-contrib">+8%</div>
+              </div>
+            </div>
+            <div class="driver">
+              <div>
+                <div class="driver-name">BMI</div>
+                <div class="driver-value">25.5 · normal</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div class="driver-bar"><div class="driver-bar-fill" style="width:8%;background:var(--tol-grey)"></div></div>
+                <div class="driver-contrib" style="color:var(--ehr-text-2)">+4%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clinical interpretation -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>Clinical Interpretation</span>
+          <span class="right">Auto-generated · Reviewed by clinician required</span>
+        </div>
+        <div class="panel-body" style="padding:10px 12px">
+          <div class="interpretation">
+            Patient's baseline CAT risk without prophylaxis is <b>18.3%</b> at 6 months. Standard 3-month prophylaxis reduces risk to <b>8.4%</b>, while extended 6-month prophylaxis reduces it to <b>4.1%</b>. Absolute risk reduction with extended prophylaxis is <b>14.1%</b>, with a <b>number needed to treat (NNT) of 7</b> to prevent one VTE event. Risk remains elevated while cancer is active and during chemotherapy. Bleeding risk is low (HAS-BLED 1); no contraindications to LMWH identified.
+          </div>
+        </div>
+      </div>
+
+      <!-- Prophylaxis recommendation -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>Prophylaxis Recommendation</span>
+          <span class="right">ASCO 2023 · ISTH 2022 Guidelines</span>
+        </div>
+        <div class="panel-body">
+          <div class="reco-grid">
+            <div class="reco-card">
+              <div class="reco-label">Without Blood Thinners</div>
+              <div class="reco-value">7<span style="font-size:14px">%</span></div>
+              <div class="reco-sub">6-month VTE risk · current trajectory</div>
+            </div>
+            <div class="reco-card recommended">
+              <div class="reco-label">With Blood Thinners</div>
+              <div class="reco-value">4<span style="font-size:14px">%</span></div>
+              <div class="reco-sub">6-month VTE risk with extended LMWH</div>
+              <span class="reco-tag">Recommended</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <div class="order-summary">
+          <b>Order Set:</b> Enoxaparin 40 mg subcutaneous, daily × 180 days · <b>Pharmacy review</b> required · <b>Cosign:</b> Attending
+        </div>
+        <div class="action-buttons">
+          <button class="btn">Defer / Reassess</button>
+          <button class="btn danger">Override</button>
+          <button class="btn primary">Sign &amp; Send to Pharmacy</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =========================================== -->
+    <!-- ============ PATIENT VIEW ================= -->
+    <!-- =========================================== -->
+    <div id="view-patient" class="view">
+
+      <!-- Disclaimer strip -->
+      <div class="alert-strip" style="background:#e8f0fe;border-left-color:var(--tol-blue)">
+        <span class="alert-icon" style="background:var(--tol-blue)">i</span>
+        <div>
+          <b>Shared decision-making view.</b>
+          Plain-language summary for the patient. Reviewed and shared by Dr. Lam during the visit. Patient education accessible via MyChart after the encounter.
+        </div>
+      </div>
+
+      <!-- Treatment timeline (same data, friendlier framing) -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>Your Treatment Timeline — Next 6 Months</span>
+          <span class="right">How your clot risk changes over time</span>
+        </div>
+        <div class="timeline-wrap">
+          <div class="timeline-legend">
+            <span><span class="swatch" style="background:var(--risk-low)"></span>Low</span>
+            <span><span class="swatch" style="background:var(--risk-mod)"></span>Moderate</span>
+            <span><span class="swatch" style="background:var(--risk-high)"></span>Higher</span>
+            <span><span class="swatch" style="background:var(--risk-crit)"></span>Highest</span>
+          </div>
+          <div class="timeline">
+            <div class="threshold" style="bottom:35%">
+              <span class="threshold-label">When we typically start blood thinners</span>
+            </div>
+            <div class="timeline-bars">
+              <div class="bar-col">
+                <div class="bar" style="height:6%;background:var(--risk-low)"></div>
+                <div class="bar-value">5%</div>
+                <div class="bar-label">Pre-surgery</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:32%;background:var(--risk-high)"></div>
+                <div class="bar-value">18%</div>
+                <div class="bar-label">Surgery</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:20%;background:var(--risk-mod)"></div>
+                <div class="bar-value">12%</div>
+                <div class="bar-label">Chemo 1</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar you-are-here" style="height:30%;background:var(--risk-high);outline:2px solid var(--ehr-text)"></div>
+                <div class="bar-value">16%</div>
+                <div class="bar-label">Chemo 2</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:48%;background:var(--risk-high)"></div>
+                <div class="bar-value">24%</div>
+                <div class="bar-label">Chemo 3</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:42%;background:var(--risk-high)"></div>
+                <div class="bar-value">22%</div>
+                <div class="bar-label">Chemo 4</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:32%;background:var(--risk-high)"></div>
+                <div class="bar-value">18%</div>
+                <div class="bar-label">Chemo 5</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:26%;background:var(--risk-high)"></div>
+                <div class="bar-value">15%</div>
+                <div class="bar-label">Chemo 6</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:16%;background:var(--risk-mod)"></div>
+                <div class="bar-value">10%</div>
+                <div class="bar-label">Recovery I</div>
+              </div>
+              <div class="bar-col">
+                <div class="bar" style="height:10%;background:var(--risk-low)"></div>
+                <div class="bar-value">7%</div>
+                <div class="bar-label">Recovery II</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dot matrix -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>What This Looks Like</span>
+          <span class="right">Risk shown as 100 people like you</span>
+        </div>
+        <div class="panel-body" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center">
+          <div class="dot-matrix-wrap">
+            <div class="dot-matrix-title">100 patients like John</div>
+            <div class="dot-matrix" id="dot-matrix"></div>
+            <div class="dot-legend">
+              <span class="leg-item"><span class="leg-dot affected"></span>Develops a blood clot</span>
+              <span class="leg-item"><span class="leg-dot"></span>Does not develop a clot</span>
+            </div>
+          </div>
+          <div class="dot-summary">
+            Out of <u>100 patients</u> like John,<br/>
+            about <span class="big">7</span> would develop a blood clot<br/>
+            in the next 6 months without treatment.<br/>
+            <br/>
+            With blood thinners, this drops to about<br/>
+            <span class="big safe">4 in 100</span> — preventing roughly 3 clots.
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient reco -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>Your Treatment Options</span>
+          <span class="right">Reviewed with your care team</span>
+        </div>
+        <div class="panel-body">
+          <div class="patient-reco-grid">
+            <div class="patient-reco">
+              <div class="pr-label">Without Blood Thinners</div>
+              <div class="pr-value">7%</div>
+              <div class="pr-sub">chance of blood clot in 6 months</div>
+            </div>
+            <div class="patient-reco recommended">
+              <div class="pr-label">With Blood Thinners</div>
+              <div class="pr-value">4%</div>
+              <div class="pr-sub">chance of blood clot in 6 months</div>
+              <span class="reco-tag" style="margin-top:8px">Your care team recommends this</span>
+            </div>
+          </div>
+          <div class="patient-guidance">
+            <b>Plain summary:</b> Taking blood thinners lowers your chance of a blood clot from about 7 in 100 to 4 in 100. Side effects include increased bruising and a small risk of bleeding.
+          </div>
+        </div>
+      </div>
+
+      <!-- Similar patients -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>How Patients Like You Have Done</span>
+          <span class="right">Based on 100 similar patients in our database</span>
+        </div>
+        <div class="panel-body">
+          <div class="similar-patients">
+            <div class="sp-criteria">
+              <b>Out of 100 patients with:</b>
+              <ul>
+                <li>Gastric cancer, Stage III</li>
+                <li>Receiving FOLFOX chemotherapy</li>
+                <li>Similar lab values and biomarkers</li>
+              </ul>
+            </div>
+            <div class="outcome-row">
+              <span>Had neither complication</span>
+              <div class="outcome-bar"><div class="outcome-bar-fill" style="width:73%;background:var(--tol-green)"></div></div>
+              <b>73</b>
+            </div>
+            <div class="outcome-row">
+              <span>Developed a blood clot (VTE)</span>
+              <div class="outcome-bar"><div class="outcome-bar-fill" style="width:24%;background:var(--tol-red)"></div></div>
+              <b>24</b>
+            </div>
+            <div class="outcome-row">
+              <span>Had major bleeding</span>
+              <div class="outcome-bar"><div class="outcome-bar-fill" style="width:3%;background:var(--tol-purple)"></div></div>
+              <b>3</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="order-summary">
+          <b>Next step:</b> Discuss with your care team and decide together. Educational handout available in MyChart.
+        </div>
+        <div class="action-buttons">
+          <button class="btn">Print Summary</button>
+          <button class="btn primary">Open Patient Education</button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- ========== Status footer ========== -->
+<div class="status-footer">
+  <div class="session">Logged in as <b>Dr. Barbara Lam, MD</b> · Hematology/Oncology · UWMC</div>
+  <div>Wireframe — Synthetic data for research demonstration only · Not for clinical use</div>
+  <div class="fhir-status">
+    <span class="status-dot"></span>
+    FHIR R4 connection active · CDS Hooks v1.1 · Last sync 14:31:48
+  </div>
+</div>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.view-tab[data-tab="' + tab + '"]').classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + tab).classList.add('active');
+  }
+
+  // Build dot matrix: 100 dots, 7 affected
+  (function() {
+    const wrap = document.getElementById('dot-matrix');
+    if (!wrap) return;
+    for (let i = 0; i < 100; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < 7 ? ' affected' : '');
+      wrap.appendChild(d);
+    }
+  })();
+</script>
+
+</body>
+</html>
